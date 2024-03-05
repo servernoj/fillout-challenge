@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
         }
         switch (filter.condition) {
           case 'equals': return q.value === filter.value
-          case 'does_not_equal': return q.value === filter.value
+          case 'does_not_equal': return q.value !== filter.value
           case 'greater_than': return q.type === 'DatePicker'
             ? new Date(q.value) > new Date(filter.value)
             : q.value > filter.value
