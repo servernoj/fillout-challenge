@@ -76,24 +76,28 @@ router.get('/', async (req, res) => {
         if (!filter) {
           return true
         }
-        if (q.type === 'DatePicker') {
-          q.value = new Date(q.value).valueOf()
-          filter.value = new Date(filter.value).valueOf()
-        }
         switch (filter.condition) {
           case 'equals': return q.value === filter.value
           case 'does_not_equal': return q.value === filter.value
-          case 'greater_than': return q.value > filter.value
-          case 'less_than': return q.value < filter.value
+          case 'greater_than': return q.type === 'DatePicker'
+            ? new Date(q.value) > new Date(filter.value)
+            : q.value > filter.value
+          case 'less_than': return q.type === 'DatePicker'
+            ? new Date(q.value) < new Date(filter.value)
+            : q.value < filter.value
           default: return false
         }
       }
     )
   )
   res.json({
-    responses: responsesFiltered.slice(offset, offset + limit),
+    responses: limit
+      ? responsesFiltered.slice(offset, offset + limit)
+      : responsesFiltered.slice(offset),
     totalResponses: responsesFiltered.length,
-    pageCount: Math.ceil(responsesFiltered.length / limit)
+    pageCount: limit
+      ? Math.ceil(responsesFiltered.length / limit)
+      : 1
   })
 })
 
