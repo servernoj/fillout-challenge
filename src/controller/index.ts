@@ -1,8 +1,8 @@
 import express from 'express'
-import submissions from './submissions'
+import filteredResponses from './filteredResponses'
 
 const router = express.Router()
-router.use('/submissions', submissions)
+router.use('/', filteredResponses)
 router.get('/health', (req, res) => {
   res.status(200).send('OK')
 })

@@ -41,7 +41,7 @@ type Submissions = {
 
 const setAxios: RequestHandler = async (req, res, next) => {
   const axiosInstance = axios.create({
-    baseURL: `${process.env.BASE_URL}/${process.env.FORM_ID}`
+    baseURL: `${process.env.BASE_URL}`
   })
   axiosInstance.defaults.headers.common.Authorization = `Bearer ${process.env.API_KEY}`
   req.axios = axiosInstance
@@ -49,7 +49,8 @@ const setAxios: RequestHandler = async (req, res, next) => {
 }
 router.use(setAxios)
 
-router.get('/', async (req, res) => {
+router.get('/:formId/filteredResponses', async (req, res) => {
+  const formId = req.params.formId
   const passThroughQuery = querystring.stringify(
     fromPairs(
       toPairs(req.query).filter(
@@ -57,7 +58,7 @@ router.get('/', async (req, res) => {
       )
     ) as unknown as PassThroughQuery
   )
-  const { limit, offset, filters } = req.query as unknown as LandedQuery
+  const { limit, offset = 0, filters } = req.query as unknown as LandedQuery
   const filtersParsed = [] as Array<FilterClauseType>
   try {
     filtersParsed.push(...JSON.parse(filters ?? '[]'))
@@ -66,7 +67,7 @@ router.get('/', async (req, res) => {
     return
   }
 
-  const submissions = await req.axios.get<Submissions>(`submissions?${passThroughQuery}`).then(({ data }) => data)
+  const submissions = await req.axios.get<Submissions>(`${formId}/submissions?${passThroughQuery}`).then(({ data }) => data)
   const responsesFiltered = submissions.responses.filter(
     s => s.questions.every(
       q => {
