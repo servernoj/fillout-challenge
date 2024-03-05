@@ -1,7 +1,43 @@
 import axios from 'axios'
 import express, { RequestHandler } from 'express'
+import { toPairs, fromPairs } from 'lodash'
+import querystring from 'node:querystring'
 
 const router = express.Router()
+
+type SubmissionsQuery = {
+  limit: number
+  afterDate: string
+  beforeDate: string
+  offset: number
+  status: string
+  includeEditLink: boolean
+  sort: 'asc' | 'desc'
+  filters: string
+}
+
+const passThroughQueryKeys = ['afterDate', 'beforeDate', 'status', 'includeEditLink', 'sort'] as const
+type PassThroughQuery = {
+  [key in typeof passThroughQueryKeys[number]]: SubmissionsQuery[key]
+}
+type LandedQuery = Omit<SubmissionsQuery, typeof passThroughQueryKeys[number]>
+
+type FilterClauseType = {
+  id: string
+  condition: 'equals' | 'does_not_equal' | 'greater_than' | 'less_than'
+  value: number | string
+}
+
+type Submissions = {
+  responses: Array<{
+    questions: Array<{
+      id: string
+      name: string,
+      type: string,
+      value: number | string
+    }>
+  }>
+}
 
 const setAxios: RequestHandler = async (req, res, next) => {
   const axiosInstance = axios.create({
@@ -12,9 +48,53 @@ const setAxios: RequestHandler = async (req, res, next) => {
   next()
 }
 router.use(setAxios)
+
 router.get('/', async (req, res) => {
-  const submissions = await req.axios.get('submissions').then(({ data }) => data)
-  res.json(submissions)
+  const passThroughQuery = querystring.stringify(
+    fromPairs(
+      toPairs(req.query).filter(
+        ([k]) => passThroughQueryKeys.includes(k as any)
+      )
+    ) as unknown as PassThroughQuery
+  )
+  const { limit, offset, filters } = req.query as unknown as LandedQuery
+  const filtersParsed = [] as Array<FilterClauseType>
+  try {
+    filtersParsed.push(...JSON.parse(filters ?? '[]'))
+  } catch (e) {
+    res.status(400).json({ msg: 'unable to process \'filters\' query param' })
+    return
+  }
+
+  const submissions = await req.axios.get<Submissions>(`submissions?${passThroughQuery}`).then(({ data }) => data)
+  const responsesFiltered = submissions.responses.filter(
+    s => s.questions.every(
+      q => {
+        const filter = filtersParsed.find(
+          f => f.id === q.id
+        )
+        if (!filter) {
+          return true
+        }
+        if (q.type === 'DatePicker') {
+          q.value = new Date(q.value).valueOf()
+          filter.value = new Date(filter.value).valueOf()
+        }
+        switch (filter.condition) {
+          case 'equals': return q.value === filter.value
+          case 'does_not_equal': return q.value === filter.value
+          case 'greater_than': return q.value > filter.value
+          case 'less_than': return q.value < filter.value
+          default: return false
+        }
+      }
+    )
+  )
+  res.json({
+    responses: responsesFiltered.slice(offset, offset + limit),
+    totalResponses: responsesFiltered.length,
+    pageCount: Math.ceil(responsesFiltered.length / limit)
+  })
 })
 
 export default router
