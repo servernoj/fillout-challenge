@@ -1,5 +1,5 @@
 import express from 'express'
-import filteredResponses from './filteredResponses'
+import filteredResponses from './filteredResponses.js'
 
 const router = express.Router()
 router.use('/', filteredResponses)

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "module": "commonjs",
+    "target": "ES2022",
+    "module": "NodeNext",
     "outDir": "build",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -10,6 +10,7 @@
     "baseUrl": "./",
     "paths": {
       "@/*": [
+        "./src/*/index.ts",
         "./src/*"
       ]
     },
@@ -17,5 +18,5 @@
       "@types",
       "@/@types"
     ],
-  }
+  },
 }

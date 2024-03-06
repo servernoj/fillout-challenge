@@ -1,6 +1,6 @@
 import axios from 'axios'
 import express, { RequestHandler } from 'express'
-import { toPairs, fromPairs } from 'lodash'
+import { toPairs, fromPairs } from 'lodash-es'
 import querystring from 'node:querystring'
 
 const router = express.Router()
